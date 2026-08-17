@@ -1,6 +1,6 @@
 {
   "name": "multi-agent-pi-mvp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",
@@ -17,7 +17,7 @@
     "pack:desktop": "pnpm build && electron-builder --dir",
     "dist:desktop": "pnpm build && electron-builder",
     "dist:mac": "pnpm build && electron-builder --mac",
-    "dist:win": "pnpm build && electron-builder --win nsis --x64 --publish never",
+    "dist:win": "pnpm build && electron-builder --win --x64 --publish never",
     "dist:linux": "pnpm build && electron-builder --linux",
     "demo": "node --import tsx src/demo.ts",
     "start": "node dist/src/server.js",
@@ -81,10 +81,16 @@
       ]
     },
     "win": {
-      "artifactName": "${productName}-Setup-${version}-windows-${arch}.${ext}",
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}",
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "x64"
           ]
@@ -93,10 +99,16 @@
       "icon": "build/icon.png"
     },
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}-windows-${arch}.${ext}",
       "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "shortcutName": "Multi-Agent Office",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
       "installerLanguages": [
         "zh_CN",
         "en_US"

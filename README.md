@@ -38,7 +38,7 @@ JSONL EventStore 使用串行 append。旧日志中的 `recipientAgentId`、`roo
 桌面版把 Electron/Node.js 运行时、服务端和网页界面打进同一个应用。用户不需要安装 Node.js 或 pnpm：
 
 1. 下载自己系统对应的文件：macOS 使用 `.dmg`，Windows x64 使用文件名包含 `Setup` 的 `.exe`，Linux 使用 `.AppImage`。
-2. 安装并双击桌面上的 **Multi-Agent Office** 快捷方式。Windows 版会启动本地服务并在系统默认浏览器中打开前端界面；再次双击快捷方式会重新打开页面。第一个界面会要求选择 API 提供商并输入 API Key。
+2. 安装并双击桌面上的 **Multi-Agent Office** 快捷方式。应用窗口会立即出现并显示启动进度，本地服务就绪后自动进入工作台；首次启动因为杀毒软件扫描可能需要一到两分钟。第一个界面会要求选择 API 提供商并输入 API Key。
 3. 选择“仅使用 API”即可完全不使用 Codex；如本机已经安装并登录 Codex CLI，也可以选择“API + Codex”。
 4. 点击“保存并进入工作台”。配置会立即生效，不需要打开配置文件或重启应用。
 
@@ -63,7 +63,22 @@ MAO_SETUP_COMPLETED=1
 
 其中 `config.env` 保存密钥，`data/` 保存 Agent 花名册、事件和 session，`desktop.log` 用于排查启动问题。不要把 `config.env` 发给别人或提交到 Git。
 
-Windows 版运行时会在通知区域保留图标，以便重新打开前端、查看配置或日志以及退出应用。关闭浏览器标签页不会停止本地服务；要完全退出，请右键通知区域图标并选择“退出”。
+Windows 版运行时会在通知区域保留图标，可以显示主窗口、改用系统浏览器打开前端、查看配置或日志以及退出应用。关闭主窗口会同时停止本地服务；如果只是想让界面在浏览器里继续用，请先用通知区域图标或“配置 → 在浏览器中打开”打开页面。
+
+## Windows：双击没有反应怎么办
+
+应用本身在启动的第一秒就会显示窗口，任何启动失败都会写进 `%APPDATA%\Multi-Agent Office\desktop.log` 并弹出对话框。如果双击之后屏幕上什么都没有发生，通常是安装包在运行之前就被系统拦截了，按顺序检查：
+
+1. **确认下载完整。** Release 里附带 `SHA256SUMS.txt`。在下载目录运行
+   `certutil -hashfile "Multi-Agent Office-Setup-<版本>-windows-x64.exe" SHA256`，
+   对比其中的哈希值。被中断的下载双击后正是毫无反应。
+2. **解除文件锁定。** 从浏览器下载的文件带有来源标记：右键 `.exe` → 属性 → 勾选“解除锁定”→ 确定。
+3. **通过 SmartScreen。** 安装包没有做代码签名，蓝色的“Windows 已保护你的电脑”窗口需要点“更多信息”→“仍要运行”。部分企业策略会直接静默阻止未签名程序，此时需要管理员放行。
+4. **检查杀毒软件。** 360、火绒、Defender 等可能把未签名安装包直接移入隔离区，双击后文件已经不存在。请在隔离区恢复并加入白名单。
+5. **确认系统版本。** 需要 64 位 Windows 10 1809 及以上或 Windows 11。32 位系统和 Windows 7/8.1 无法运行。
+6. **改用免安装版。** Release 同时提供 `Multi-Agent Office-<版本>-windows-x64.zip`：解压到任意可写目录（不要留在压缩包里直接运行），双击其中的 `Multi-Agent Office.exe` 即可，不需要安装器。
+
+如果安装成功、窗口出现但停在启动页，请把 `%APPDATA%\Multi-Agent Office\desktop.log` 的内容附在反馈里——里面记录了应用版本、端口分配和本地服务的完整错误输出。通知区域图标和菜单“配置 → 打开运行日志”都可以直接打开这个文件。
 
 Pi 运行时已包含在桌面应用中。`@codex` 仍需要用户另外安装并登录 Codex CLI；如果命令不在系统 PATH 中，请在 `config.env` 配置绝对路径：
 
@@ -90,8 +105,10 @@ pnpm dist:linux
 
 建议分别在 macOS、Windows、Linux 构建并测试对应产物。公开分发前还应为 macOS 应用和 Windows 安装包配置代码签名；未签名的测试包可能触发系统安全警告。
 
-Windows 安装包固定为 x64 NSIS 安装器，文件名格式为
-`Multi-Agent Office-Setup-<version>-windows-x64.exe`。仓库中的 **Windows installer** GitHub Actions 工作流会在原生 Windows 环境完成类型检查、测试和打包：可以在 Actions 页面手动运行并下载构建产物；推送 `v*` 标签时，安装包也会自动附加到对应的 GitHub Release。这样无需在 macOS 上安装 Wine，也不会再只生成 macOS 产物。
+Windows 产物固定为 x64，包含 NSIS 安装器 `Multi-Agent Office-Setup-<version>-windows-x64.exe`
+和免安装压缩包 `Multi-Agent Office-<version>-windows-x64.zip`，另附 `SHA256SUMS.txt` 供用户校验下载完整性。仓库中的 **Windows installer** GitHub Actions 工作流会在原生 Windows 环境完成类型检查、测试、打包，并静默安装后启动一次打包好的应用，确认本地服务真的能起来：可以在 Actions 页面手动运行并下载构建产物；推送 `v*` 标签时，安装包也会自动附加到对应的 GitHub Release。这样无需在 macOS 上安装 Wine，也不会再只生成 macOS 产物。
+
+安装包没有代码签名，用户第一次运行会遇到 SmartScreen 提示，少数安全软件会直接拦截。公开分发前应当配置 Windows 代码签名证书（electron-builder 的 `win.certificateFile` / `certificatePassword`），这是消除“双击没反应”类反馈最彻底的办法。
 
 仅生成当前平台可直接运行、但不制作安装器的目录：
 

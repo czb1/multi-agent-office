@@ -82,13 +82,25 @@ jobs:
             throw "Installed application did not start its local server"
           }
 
+      - name: Publish checksums
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem "release/*.exe", "release/*.zip" | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          }
+          if (-not $lines) { throw "No Windows artifacts to checksum" }
+          Set-Content -Path "release/SHA256SUMS.txt" -Value $lines -Encoding ascii
+          Get-Content "release/SHA256SUMS.txt"
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
           name: multi-agent-office-windows-x64-${{ github.run_number }}
           path: |
             release/*.exe
+            release/*.zip
             release/*.blockmap
+            release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -113,4 +125,6 @@ jobs:
           generate_release_notes: true
           files: |
             release/*.exe
+            release/*.zip
             release/*.blockmap
+            release/SHA256SUMS.txt
